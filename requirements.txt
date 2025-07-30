@@ -1,0 +1,24 @@
+# Lightweight requirements for 2-core 0.5GB RAM servers
+# Minimal dependencies to reduce memory footprint
+
+# Core web framework - only essential
+Flask==2.3.3
+
+# System monitoring for resource management
+psutil==5.9.5
+
+# Note: The following are automatically included with Flask:
+# - Werkzeug (WSGI toolkit)
+# - Jinja2 (templating)
+# - MarkupSafe (string handling)
+# - itsdangerous (session security)
+# - click (CLI support)
+# - blinker (signals)
+
+# Removed dependencies for lightweight deployment:
+# - No database drivers (using file-based storage if needed)
+# - No additional web servers (using Flask's built-in server)
+# - No heavy frameworks or ORMs
+# - No unnecessary utilities
+
+# Total estimated memory usage: ~15-25MB for dependencies

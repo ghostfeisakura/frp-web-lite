@@ -1,0 +1,48 @@
+# Sudoers configuration for FRP Web Control Panel
+# This file should be placed in /etc/sudoers.d/frp-web
+# 
+# Allows the web application user to manage frps service without password
+# 
+# Installation:
+# sudo cp sudoers-frp-web /etc/sudoers.d/frp-web
+# sudo chmod 440 /etc/sudoers.d/frp-web
+# sudo visudo -c  # Check syntax
+
+# Allow www-data user (default web server user) to manage frps service
+www-data ALL=(ALL) NOPASSWD: /bin/systemctl start frps
+www-data ALL=(ALL) NOPASSWD: /bin/systemctl stop frps
+www-data ALL=(ALL) NOPASSWD: /bin/systemctl restart frps
+www-data ALL=(ALL) NOPASSWD: /bin/systemctl status frps
+www-data ALL=(ALL) NOPASSWD: /bin/systemctl is-active frps
+www-data ALL=(ALL) NOPASSWD: /bin/journalctl -u frps -n *
+
+# Allow frp-web user (if running as dedicated user) to manage frps service
+frp-web ALL=(ALL) NOPASSWD: /bin/systemctl start frps
+frp-web ALL=(ALL) NOPASSWD: /bin/systemctl stop frps
+frp-web ALL=(ALL) NOPASSWD: /bin/systemctl restart frps
+frp-web ALL=(ALL) NOPASSWD: /bin/systemctl status frps
+frp-web ALL=(ALL) NOPASSWD: /bin/systemctl is-active frps
+frp-web ALL=(ALL) NOPASSWD: /bin/journalctl -u frps -n *
+
+# Allow current user (for development/testing)
+%sudo ALL=(ALL) NOPASSWD: /bin/systemctl start frps
+%sudo ALL=(ALL) NOPASSWD: /bin/systemctl stop frps
+%sudo ALL=(ALL) NOPASSWD: /bin/systemctl restart frps
+%sudo ALL=(ALL) NOPASSWD: /bin/systemctl status frps
+%sudo ALL=(ALL) NOPASSWD: /bin/systemctl is-active frps
+%sudo ALL=(ALL) NOPASSWD: /bin/journalctl -u frps -n *
+
+# Alternative: Allow any user in frp group to manage frps
+# %frp ALL=(ALL) NOPASSWD: /bin/systemctl start frps
+# %frp ALL=(ALL) NOPASSWD: /bin/systemctl stop frps
+# %frp ALL=(ALL) NOPASSWD: /bin/systemctl restart frps
+# %frp ALL=(ALL) NOPASSWD: /bin/systemctl status frps
+# %frp ALL=(ALL) NOPASSWD: /bin/systemctl is-active frps
+# %frp ALL=(ALL) NOPASSWD: /bin/journalctl -u frps -n *
+
+# Security notes:
+# 1. This configuration allows passwordless sudo for specific systemctl commands only
+# 2. The journalctl command allows any number of lines (-n *) for flexibility
+# 3. Users can only manage the 'frps' service, not other services
+# 4. Consider creating a dedicated 'frp-web' user for better security isolation
+# 5. Regularly review and audit sudo access logs

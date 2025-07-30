@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRP控制面板</title>
+    <!-- 使用轻量级CSS框架，减少资源占用 -->
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #333; line-height: 1.6; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .card { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { color: #2563eb; margin-bottom: 10px; }
+        .status { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: 500; }
+        .status-active { background: #dcfce7; color: #166534; }
+        .status-inactive { background: #fef2f2; color: #991b1b; }
+        .btn-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin: 20px 0; }
+        .btn { padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.2s; text-decoration: none; text-align: center; display: inline-block; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-start { background: #10b981; color: white; }
+        .btn-start:hover:not(:disabled) { background: #059669; }
+        .btn-stop { background: #ef4444; color: white; }
+        .btn-stop:hover:not(:disabled) { background: #dc2626; }
+        .btn-restart { background: #f59e0b; color: white; }
+        .btn-restart:hover:not(:disabled) { background: #d97706; }
+        .btn-refresh { background: #3b82f6; color: white; }
+        .btn-refresh:hover { background: #2563eb; }
+        .logs { background: #1f2937; color: #10b981; padding: 15px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 13px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; }
+        .loading { display: none; text-align: center; padding: 20px; }
+        .toast { position: fixed; top: 20px; right: 20px; padding: 15px 20px; border-radius: 6px; color: white; z-index: 1000; display: none; }
+        .toast-success { background: #10b981; }
+        .toast-error { background: #ef4444; }
+        .controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+        .log-controls { display: flex; gap: 10px; align-items: center; }
+        .log-controls select { padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; }
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            .btn-group { grid-template-columns: 1fr; }
+            .controls { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="card header">
+            <h1>🚀 FRP控制面板</h1>
+            <p>轻量版 - 管理 {{ service_name }} 服务</p>
+            {% if session.logged_in %}
+            <a href="/logout" class="btn btn-refresh" style="margin-top: 10px;">退出登录</a>
+            {% endif %}
+        </div>
+
+        <!-- Status -->
+        <div class="card">
+            <h2>📊 服务状态</h2>
+            <div class="status">
+                <span>当前状态:</span>
+                <span id="status-badge" class="status-badge {{ 'status-active' if status.active else 'status-inactive' }}">
+                    {{ status.status }}
+                </span>
+                <span style="margin-left: auto;">
+                    <button onclick="refreshStatus()" class="btn btn-refresh">🔄 刷新</button>
+                </span>
+            </div>
+            <div id="status-details" style="background: #f9fafb; padding: 10px; border-radius: 4px; font-size: 14px;">
+                {{ status.details }}
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="card">
+            <h2>🎛️ 服务控制</h2>
+            <div class="btn-group">
+                <button id="btn-start" onclick="serviceAction('start')" class="btn btn-start" 
+                        {{ 'disabled' if status.active else '' }}>
+                    ▶️ 启动
+                </button>
+                <button id="btn-stop" onclick="serviceAction('stop')" class="btn btn-stop"
+                        {{ 'disabled' if not status.active else '' }}>
+                    ⏹️ 停止
+                </button>
+                <button id="btn-restart" onclick="serviceAction('restart')" class="btn btn-restart">
+                    🔄 重启
+                </button>
+            </div>
+        </div>
+
+        <!-- Logs -->
+        <div class="card">
+            <div class="controls">
+                <h2>📝 服务日志</h2>
+                <div class="log-controls">
+                    <select id="log-lines" onchange="refreshLogs()">
+                        <option value="20">20行</option>
+                        <option value="50" selected>50行</option>
+                        <option value="100">100行</option>
+                    </select>
+                    <button onclick="refreshLogs()" class="btn btn-refresh">刷新日志</button>
+                </div>
+            </div>
+            <div id="logs" class="logs">加载中...</div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="loading">
+            <div>⏳ 处理中...</div>
+        </div>
+
+        <!-- Toast -->
+        <div id="toast" class="toast"></div>
+    </div>
+
+    <script>
+        // 轻量级JavaScript，无外部依赖
+        let isLoading = false;
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast toast-${type}`;
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 3000);
+        }
+
+        function setLoading(loading) {
+            isLoading = loading;
+            document.getElementById('loading').style.display = loading ? 'block' : 'none';
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => btn.disabled = loading);
+        }
+
+        async function apiCall(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    headers: { 'Content-Type': 'application/json' },
+                    ...options
+                });
+                return await response.json();
+            } catch (error) {
+                throw new Error('网络请求失败: ' + error.message);
+            }
+        }
+
+        async function refreshStatus() {
+            try {
+                const data = await apiCall('/api/status');
+                const badge = document.getElementById('status-badge');
+                const details = document.getElementById('status-details');
+                
+                badge.textContent = data.status;
+                badge.className = `status-badge ${data.active ? 'status-active' : 'status-inactive'}`;
+                details.textContent = data.details;
+                
+                // Update button states
+                document.getElementById('btn-start').disabled = data.active;
+                document.getElementById('btn-stop').disabled = !data.active;
+                
+            } catch (error) {
+                showToast('获取状态失败: ' + error.message, 'error');
+            }
+        }
+
+        async function serviceAction(action) {
+            if (isLoading) return;
+            
+            setLoading(true);
+            try {
+                const data = await apiCall(`/api/${action}`, { method: 'POST' });
+                
+                if (data.success) {
+                    showToast(`服务${action === 'start' ? '启动' : action === 'stop' ? '停止' : '重启'}成功!`);
+                    setTimeout(refreshStatus, 1000);
+                } else {
+                    showToast(`操作失败: ${data.stderr || data.stdout || '未知错误'}`, 'error');
+                }
+            } catch (error) {
+                showToast('操作失败: ' + error.message, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function refreshLogs() {
+            const lines = document.getElementById('log-lines').value;
+            const logsDiv = document.getElementById('logs');
+            
+            try {
+                logsDiv.textContent = '加载中...';
+                const data = await apiCall(`/api/logs?lines=${lines}`);
+                logsDiv.textContent = data.stdout || '暂无日志';
+                logsDiv.scrollTop = logsDiv.scrollHeight;
+            } catch (error) {
+                logsDiv.textContent = '获取日志失败: ' + error.message;
+            }
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshLogs();
+            // 每30秒自动刷新状态
+            setInterval(refreshStatus, 30000);
+        });
+    </script>
+</body>
+</html>

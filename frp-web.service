@@ -1,0 +1,68 @@
+[Unit]
+Description=FRP Web Control Panel (Lightweight Edition)
+Documentation=https://github.com/fatedier/frp
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=frp-web
+Group=frp-web
+WorkingDirectory=/opt/frp-web-control
+ExecStart=/opt/frp-web-control/venv/bin/python3 /opt/frp-web-control/app.py
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=on-failure
+RestartSec=10s
+
+# Resource limits optimized for 2-core 0.5GB RAM servers
+MemoryMax=400M
+MemoryHigh=350M
+MemorySwapMax=100M
+CPUQuota=150%
+TasksMax=50
+LimitNOFILE=1024
+LimitNPROC=100
+
+# Environment variables for lightweight deployment
+Environment=FLASK_HOST=0.0.0.0
+Environment=FLASK_PORT=5000
+Environment=FLASK_DEBUG=false
+Environment=USE_SYSTEMD=true
+Environment=LOGIN_REQUIRED=true
+Environment=FRPS_SERVICE=frps
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/frp-web-control
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+
+# Network security
+PrivateDevices=true
+ProtectHostname=true
+ProtectClock=true
+ProtectKernelLogs=true
+RestrictNamespaces=true
+
+# Logging optimized for lightweight servers
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=frp-web-lite
+LogLevelMax=warning
+
+# Performance optimizations
+Nice=5
+IOSchedulingClass=2
+IOSchedulingPriority=7
+
+[Install]
+WantedBy=multi-user.target

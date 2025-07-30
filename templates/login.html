@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - FRP控制面板</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            color: #333;
+        }
+        .login-container { 
+            background: white; 
+            border-radius: 12px; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1); 
+            padding: 40px; 
+            width: 100%; 
+            max-width: 400px; 
+            margin: 20px;
+        }
+        .logo { 
+            text-align: center; 
+            margin-bottom: 30px; 
+        }
+        .logo h1 { 
+            color: #2563eb; 
+            margin-bottom: 10px; 
+            font-size: 24px;
+        }
+        .logo p { 
+            color: #6b7280; 
+            font-size: 14px;
+        }
+        .form-group { 
+            margin-bottom: 20px; 
+        }
+        .form-group label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-weight: 500; 
+            color: #374151;
+        }
+        .form-group input { 
+            width: 100%; 
+            padding: 12px 16px; 
+            border: 2px solid #e5e7eb; 
+            border-radius: 8px; 
+            font-size: 16px; 
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus { 
+            outline: none; 
+            border-color: #3b82f6; 
+        }
+        .btn-login { 
+            width: 100%; 
+            padding: 12px; 
+            background: #3b82f6; 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 16px; 
+            font-weight: 500; 
+            cursor: pointer; 
+            transition: background 0.2s;
+        }
+        .btn-login:hover { 
+            background: #2563eb; 
+        }
+        .error { 
+            background: #fef2f2; 
+            color: #991b1b; 
+            padding: 12px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            border: 1px solid #fecaca;
+        }
+        .default-creds { 
+            background: #f9fafb; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-top: 20px; 
+            font-size: 14px; 
+            color: #6b7280;
+        }
+        .default-creds strong { 
+            color: #374151; 
+        }
+        .version { 
+            text-align: center; 
+            margin-top: 20px; 
+            font-size: 12px; 
+            color: #9ca3af;
+        }
+        @media (max-width: 480px) {
+            .login-container { 
+                padding: 30px 20px; 
+                margin: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <h1>🚀 FRP控制面板</h1>
+            <p>轻量版 - 请登录继续</p>
+        </div>
+
+        {% if error %}
+        <div class="error">
+            ❌ {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST">
+            <div class="form-group">
+                <label for="username">👤 用户名</label>
+                <input type="text" id="username" name="username" required 
+                       placeholder="请输入用户名" autocomplete="username">
+            </div>
+
+            <div class="form-group">
+                <label for="password">🔒 密码</label>
+                <input type="password" id="password" name="password" required 
+                       placeholder="请输入密码" autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn-login">
+                🔑 登录
+            </button>
+        </form>
+
+        <div class="default-creds">
+            <div style="text-align: center; margin-bottom: 10px;">
+                <strong>💡 默认登录信息</strong>
+            </div>
+            <div>用户名: <strong>admin</strong></div>
+            <div>密码: <strong>admin123</strong></div>
+            <div style="margin-top: 10px; font-size: 12px; color: #ef4444;">
+                ⚠️ 生产环境请修改默认密码
+            </div>
+        </div>
+
+        <div class="version">
+            FRP Web Control Panel v1.0 (Lightweight)
+        </div>
+    </div>
+
+    <script>
+        // 简单的表单验证
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            
+            if (!username || !password) {
+                e.preventDefault();
+                alert('请输入用户名和密码');
+                return false;
+            }
+        });
+
+        // 自动聚焦到用户名输入框
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('username').focus();
+        });
+    </script>
+</body>
+</html>
